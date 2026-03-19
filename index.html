@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rishab Store</title>
+
+    <!-- Import Maps for Firebase -->
+    <script type="importmap">
+        {
+          "imports": {
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js",
+            "firebase/database": "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js"
+          }
+        }
+    </script>
+
+    <style>
+        /* CSS VARIABLES & RESET */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --danger-color: #dc2626;
+            --danger-hover: #b91c1c;
+            --edit-color: #f59e0b;
+            --edit-hover: #d97706;
+            --border-color: #d1d5db;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-dark); }
+
+        /* NAVIGATION BAR */
+        nav {
+            background-color: var(--primary-color); color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); position: sticky; top: 0; z-index: 100;
+        }
+
+        .shop-name { font-size: 1.5rem; font-weight: bold; letter-spacing: 1px; }
+        .nav-links { display: flex; gap: 15px; }
+
+        .nav-btn {
+            background-color: transparent; color: white;
+            border: 2px solid transparent; padding: 8px 16px; border-radius: 6px;
+            cursor: pointer; font-size: 1rem; transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover { background-color: rgba(255, 255, 255, 0.2); border: 2px solid white; }
+        .host-btn { background-color: white; color: var(--primary-color); font-weight: bold; }
+        .host-btn:hover { background-color: #e5e7eb; border: 2px solid white; }
+
+        /* CREATOR BANNER */
+        .creator-banner {
+            background-color: #e0e7ff;
+            color: #1e40af;
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #c7d2fe;
+        }
+        .creator-banner p { margin: 5px 0; font-weight: bold; font-size: 1.1rem; }
+
+        /* MAIN SECTIONS */
+        main { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .section { display: none; animation: fadeIn 0.4s ease-in-out; }
+        .section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* HOME / PRODUCT LISTINGS */
+        .search-container { margin-bottom: 30px; display: flex; justify-content: center; }
+        #searchInput {
+            width: 100%; max-width: 600px; padding: 15px 20px; font-size: 1.1rem;
+            border: 2px solid var(--border-color); border-radius: 50px; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        #searchInput:focus { border-color: var(--primary-color); }
+
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .product-card {
+            background-color: var(--card-bg); border-radius: 12px; overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08); transition: transform 0.3s;
+            display: flex; flex-direction: column; position: relative;
+        }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
+
+        /* Multi Image Slider Logic */
+        .img-wrapper { position: relative; width: 100%; height: 250px; background-color: #f0f0f0; display:flex; justify-content:center; align-items:center;}
+        .product-img { width: 100%; height: 100%; object-fit: cover; border-bottom: 1px solid #e5e7eb; }
+        
+        .slide-btn {
+            position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.5); 
+            color: white; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px 12px; border-radius: 50%; z-index: 10;
+        }
+        .slide-btn:hover { background: rgba(0, 0, 0, 0.8); }
+        .slide-btn.left { left: 10px; }
+        .slide-btn.right { right: 10px; }
+        .img-count-badge { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 8px; font-size: 0.8rem; border-radius: 20px;}
+        .order-badge { position: absolute; top: 10px; left: 10px; background: var(--primary-color); color: #fff; padding: 4px 10px; font-size: 0.85rem; border-radius: 6px; font-weight: bold; z-index: 10;}
+
+        .product-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
+        .product-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; }
+        .product-price { font-size: 1.2rem; color: var(--primary-color); font-weight: bold; margin-bottom: 15px; }
+
+        .btn-red { background-color: var(--danger-color); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%;}
+        .btn-red:hover { background-color: var(--danger-hover); }
+        .btn-edit { background-color: var(--edit-color); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: auto; width: 100%; }
+        .btn-edit:hover { background-color: var(--edit-hover); }
+
+        /* Action Buttons */
+        .btn-action {
+            display: inline-block; padding: 8px 15px; border-radius: 6px; text-decoration: none;
+            color: white; font-weight: bold; font-size: 0.95rem; transition: 0.3s; white-space: nowrap;
+        }
+        .call-btn { background-color: #10b981; }
+        .call-btn:hover { background-color: #059669; }
+        .go-btn { background-color: var(--primary-color); }
+        .go-btn:hover { background-color: var(--primary-hover); }
+
+        .no-data { text-align: center; font-size: 1.2rem; color: var(--text-light); grid-column: 1 / -1; padding: 40px; }
+
+        /* OWNER PAGE STYLES */
+        .owner-card { background-color: var(--card-bg); max-width: 550px; margin: 0 auto; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); overflow: hidden; text-align: center; padding-bottom: 30px; }
+        .owner-header { background-color: var(--primary-color); height: 120px; }
+        .owner-img { width: 150px; height: 150px; border-radius: 50%; border: 5px solid white; object-fit: cover; margin: -75px auto 15px auto; background-color: white; }
+        .owner-details h2 { margin-bottom: 5px; color: var(--text-dark); font-size: 1.6rem; padding: 0 15px; text-transform: capitalize; }
+        .owner-details h4 { color: var(--text-light); margin-bottom: 20px; font-weight: normal; }
+        
+        .info-group { margin: 15px 30px; padding: 15px; background-color: var(--bg-color); border-radius: 8px; text-align: left; }
+        .info-group strong { display: block; color: var(--primary-color); margin-bottom: 5px; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px;}
+
+        .top-contact-banner {
+            font-size: 1.3rem; font-weight: bold; color: var(--primary-color); 
+            margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap;
+        }
+
+        /* ADMIN PANEL LAYOUT */
+        .admin-layout { display: flex; flex-direction: column; gap: 30px; max-width: 800px; margin: 0 auto;}
+        .admin-box { background-color: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .admin-box h2 { text-align: center; margin-bottom: 25px; color: var(--primary-color); padding-bottom: 10px; border-bottom: 2px solid #e5e7eb;}
+        
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem;}
+        .form-group input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; }
+        .form-row { display: flex; gap: 15px; align-items: center; margin-bottom: 10px;}
+        .form-row input { flex: 1; }
+
+        .submit-btn { width: 100%; padding: 15px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.3s; margin-top: 15px;}
+        .submit-btn:hover { background-color: var(--primary-hover); }
+        .btn-outline { background-color: transparent; border: 2px dashed var(--primary-color); color: var(--primary-color); padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px;}
+        .btn-outline:hover { background-color: #eff6ff; }
+        
+        /* MODALS (Login & Edit) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; overflow-y: auto; padding: 20px;}
+        .modal-overlay.active { display: flex; }
+        .login-box { background-color: white; padding: 40px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 20px 25px rgba(0,0,0,0.1); position: relative; margin: auto; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: var(--text-light); }
+        .login-box h2 { text-align: center; margin-bottom: 25px; color: var(--primary-color); }
+
+        @media (max-width: 600px) {
+            nav { flex-direction: column; gap: 15px; }
+            .nav-links { width: 100%; justify-content: center; flex-wrap: wrap; }
+            .form-row { flex-direction: column; align-items: stretch; gap: 5px; margin-bottom: 20px;}
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAVIGATION BAR -->
+    <nav>
+        <div class="shop-name" id="navShopName">Loading Shop...</div>
+        <div class="nav-links">
+            <button class="nav-btn" onclick="navigate('home')">Home</button>
+            <button class="nav-btn" onclick="navigate('owner')">Owner Page</button>
+            <button class="nav-btn host-btn" id="hostNavBtn" onclick="handleHostClick()">Admin Login</button>
+        </div>
+    </nav>
+
+    <!-- MAIN SECTIONS -->
+    <main>
+        
+        <!-- HOME / PRODUCT VIEW SECTION -->
+        <section id="home" class="section active">
+            <!-- Custom Banner as requested -->
+            <div class="creator-banner">
+                <p>(this website is made by NAITIKRAKESH KUMAR JAIN ( DHALAWATA ) )</p>
+                <p>9119240725</p>
+            </div>
+
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search products..." onkeyup="handleSearch()">
+            </div>
+            <div id="productGrid" class="product-grid"></div>
+        </section>
+
+        <!-- OWNER INFO SECTION -->
+        <section id="owner" class="section">
+            <div class="owner-card" id="ownerCardRender"></div>
+        </section>
+
+        <!-- ADMIN PANEL SECTION -->
+        <section id="admin" class="section">
+            <div class="admin-layout">
+                
+                <!-- Manage Products -->
+                <div class="admin-box">
+                    <h2>🛒 Add New Product</h2>
+                    <form id="addProductForm" onsubmit="addProduct(event)">
+                        <div class="form-group"><label>Order / Sequence Number (e.g. 1 shows on top) *</label><input type="number" id="prodOrder" required placeholder="Example: 1" value="1"></div>
+                        <div class="form-group"><label>Product Name *</label><input type="text" id="prodName" required placeholder="Example: Sports Watch"></div>
+                        <div class="form-group"><label>Price (₹) *</label><input type="number" id="prodPrice" required placeholder="Example: 1999"></div>
+                        <div class="form-group"><label>Primary Image Link *</label><input type="url" id="prodImage1" required placeholder="Image link 1 (Required)"></div>
+                        <div class="form-group">
+                            <label>Additional Image Links (Optional, up to 3 extra images)</label>
+                            <input type="url" id="prodImage2" placeholder="Image link 2" style="margin-bottom: 8px;">
+                            <input type="url" id="prodImage3" placeholder="Image link 3" style="margin-bottom: 8px;">
+                            <input type="url" id="prodImage4" placeholder="Image link 4">
+                        </div>
+                        <button type="submit" class="submit-btn">Publish Product</button>
+                    </form>
+                </div>
+
+                <!-- Manage Profile -->
+                <div class="admin-box">
+                    <h2>👤 Edit Shop & Owner Profile</h2>
+                    <form onsubmit="saveOwnerProfile(event)">
+                        <div class="form-group"><label>Shop Name</label><input type="text" id="editShopName" required></div>
+                        <div class="form-group"><label>Owner Name (Heading Text)</label><input type="text" id="editOwnerName" required></div>
+                        <div class="form-group"><label>Top Highlighted Mobile Number</label><input type="text" id="editTopNumber" required></div>
+                        <div class="form-group"><label>Top Number 'Call' Button Link (e.g. tel:9119240725)</label><input type="text" id="editTopNumberLink" required></div>
+                        <div class="form-group"><label>Profile Image URL</label><input type="text" id="editProfilePic"></div>
+                        <div class="form-group"><label>Official Email ID</label><input type="email" id="editEmail" required></div>
+                        <div class="form-group"><label>Full Shop Address</label><input type="text" id="editAddress" required></div>
+                        <div class="form-group"><label>Address 'GO' Button Map Link (Optional)</label><input type="text" id="editAddressLink" placeholder="Leave blank if no link needed"></div>
+
+                        <div class="form-group">
+                            <label style="border-bottom:1px solid #ddd; padding-bottom:5px; margin-top:20px; color:var(--primary-color)">Additional Contact Directory</label>
+                            <div id="dynamicContactContainer"></div>
+                            <button type="button" class="btn-outline" onclick="addNewContactField('', '')">➕ Add Contact Number</button>
+                        </div>
+
+                        <button type="submit" class="submit-btn">Update Profile & Settings</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="login-box">
+            <span class="close-btn" onclick="closeLogin()">&times;</span>
+            <h2>Admin Sign-In</h2>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group"><label>Login ID</label><input type="text" id="loginId" required placeholder="Username"></div>
+                <div class="form-group"><label>Master Password</label><input type="password" id="loginPass" required placeholder="Password"></div>
+                <button type="submit" class="submit-btn">Login & Proceed</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDIT PRODUCT MODAL (Accessible from Home Page) -->
+    <div id="editProductModal" class="modal-overlay">
+        <div class="login-box">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h2>✏️ Edit Product</h2>
+            <form onsubmit="submitEditProduct(event)">
+                <input type="hidden" id="editModalId">
+                <div class="form-group"><label>Order / Sequence Number (e.g. 1 on top)</label><input type="number" id="editModalOrder" required></div>
+                <div class="form-group"><label>Product Name</label><input type="text" id="editModalName" required></div>
+                <div class="form-group"><label>Price (₹)</label><input type="number" id="editModalPrice" required></div>
+                <div class="form-group"><label>Image 1</label><input type="url" id="editModalImg1" required></div>
+                <div class="form-group"><label>Image 2 (Optional)</label><input type="url" id="editModalImg2"></div>
+                <div class="form-group"><label>Image 3 (Optional)</label><input type="url" id="editModalImg3"></div>
+                <div class="form-group"><label>Image 4 (Optional)</label><input type="url" id="editModalImg4"></div>
+                <button type="submit" class="submit-btn">Save Updates</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FIREBASE INITIALIZATION & APPLICATION LOGIC -->
+    <script type="module">
+        import { initializeApp } from "firebase/app";
+        import { getDatabase, ref, set, onValue } from "firebase/database";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyASZgIBvHZO-z75_kM6ZnOLCjOWzKApSFY",
+          authDomain: "rishab-6a470.firebaseapp.com",
+          databaseURL: "https://rishab-6a470-default-rtdb.firebaseio.com",
+          projectId: "rishab-6a470",
+          storageBucket: "rishab-6a470.firebasestorage.app",
+          messagingSenderId: "160059496923",
+          appId: "1:160059496923:web:2f402c5272d0eddc05effe"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let isAdmin = false;
+        let currentImageIndices = {};
+        let products =[];
+        let ownerData = {};
+
+        const fallbackOwnerProfile = {
+            shopName: "Rishab Store",
+            ownerName: "Naitik Rakesh Kumar Jain (Dhalawat)",
+            topNumber: "9119240725",
+            topNumberLink: "tel:9119240725",
+            photo: "",
+            email: "rishab.jain@rishabstore.com",
+            address: "Plot No. 42, Central Shopping Street, City Square, India",
+            addressLink: "",
+            contacts:[ { label: "Shop Contact", number: "9119240725" } ]
+        };
+
+        // Realtime listener for products
+        onValue(ref(db, 'products'), (snapshot) => {
+            const data = snapshot.val();
+            products = data ? (Array.isArray(data) ? data : Object.values(data)) :[];
+            const searchKeyword = document.getElementById('searchInput') ? document.getElementById('searchInput').value : '';
+            renderProducts(searchKeyword);
+        });
+
+        // Realtime listener for owner details
+        onValue(ref(db, 'ownerData'), (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                ownerData = data;
+                ownerData.contacts = data.contacts ? (Array.isArray(data.contacts) ? data.contacts : Object.values(data.contacts)) :[];
+            } else {
+                ownerData = fallbackOwnerProfile;
+            }
+            
+            const sName = ownerData.shopName || "Rishab Store";
+            document.getElementById('navShopName').innerText = sName;
+            document.title = sName;
+
+            renderOwnerPage();
+            populateAdminForms();
+        });
+
+        // Register window globally for HTML events
+        window.navigate = navigate;
+        window.handleHostClick = handleHostClick;
+        window.closeLogin = closeLogin;
+        window.handleLogin = handleLogin;
+        window.handleSearch = handleSearch;
+        window.addProduct = addProduct;
+        window.removeProduct = removeProduct;
+        window.switchPic = switchPic;
+        window.addNewContactField = addNewContactField;
+        window.saveOwnerProfile = saveOwnerProfile;
+        
+        // Expose Edit Modal functions
+        window.openEditModal = openEditModal;
+        window.closeEditModal = closeEditModal;
+        window.submitEditProduct = submitEditProduct;
+
+        function navigate(tabName) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            
+            if(tabName === 'home') {
+                document.getElementById('searchInput').value = '';
+                renderProducts();
+            }
+        }
+
+        function handleHostClick() { isAdmin ? navigate('admin') : document.getElementById('loginModal').classList.add('active'); }
+        function closeLogin() { document.getElementById('loginModal').classList.remove('active'); }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const id = document.getElementById('loginId').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+
+            if (id === 'rishab jain' && pass === 'rishab') {
+                isAdmin = true; closeLogin();
+                document.getElementById('hostNavBtn').innerText = "Open Admin Panel";
+                document.getElementById('hostNavBtn').style.backgroundColor = "lightgreen";
+                alert("Login Success! Operating as Admin.");
+                navigate('home'); // Send to home so they can see Edit options directly!
+                renderProducts();
+            } else { alert("Warning: Invalid credentials."); }
+        }
+
+        function renderProducts(searchKeyword = '') {
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = ''; 
+            
+            // 1. Sort the products array primarily by 'order' property before displaying
+            let sortedProducts = [...products].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            // 2. Filter by search
+            let term = searchKeyword.toLowerCase();
+            let matches = sortedProducts.filter(p => p.name && p.name.toLowerCase().includes(term));
+
+            if(matches.length === 0) {
+                grid.innerHTML = `<div class="no-data">We didn't find any products matching '${term}'.</div>`;
+                return;
+            }
+
+            matches.forEach(item => {
+                if (currentImageIndices[item.id] === undefined) { currentImageIndices[item.id] = 0; }
+                const currentImgIdx = currentImageIndices[item.id];
+                const activeImg = item.images && item.images.length > 0 ? item.images[currentImgIdx] : 'https://via.placeholder.com/400?text=No+Photo';
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'product-card';
+                
+                let HTML = `<div class="img-wrapper">`;
+                
+                // Show order badge only if admin
+                if(isAdmin) { HTML += `<span class="order-badge">Order: ${item.order || 0}</span>`; }
+                
+                HTML += `<img src="${activeImg}" alt="${item.name}" id="imgObj-${item.id}" class="product-img">`;
+
+                if(item.images && item.images.length > 1) {
+                    HTML += `<button class="slide-btn left" onclick="switchPic(${item.id}, -1)">&#10094;</button>
+                             <button class="slide-btn right" onclick="switchPic(${item.id}, 1)">&#10095;</button>
+                             <span class="img-count-badge" id="badgeObj-${item.id}">${currentImgIdx+1}/${item.images.length}</span>`;
+                }
+
+                HTML += `</div><div class="product-info"><div class="product-name">${item.name}</div><div class="product-price">₹ ${item.price}</div>`;
+
+                // If admin, show both Edit and Delete buttons on the Home Page product cards
+                if(isAdmin) { 
+                    HTML += `<button class="btn-edit" onclick="openEditModal(${item.id})">✏️ Edit Product</button>`;
+                    HTML += `<button class="btn-red" onclick="removeProduct(${item.id})">🗑 Delete</button>`; 
+                }
+                
+                HTML += `</div>`; 
+                cardDiv.innerHTML = HTML;
+                grid.appendChild(cardDiv);
+            });
+        }
+
+        function switchPic(id, offsetCount) {
+            let targetObj = products.find(o => o.id === id);
+            if(!targetObj || !targetObj.images) return;
+            
+            let lengthMax = targetObj.images.length;
+            currentImageIndices[id] += offsetCount;
+
+            if(currentImageIndices[id] >= lengthMax) currentImageIndices[id] = 0;
+            if(currentImageIndices[id] < 0) currentImageIndices[id] = lengthMax - 1;
+
+            document.getElementById(`imgObj-${id}`).src = targetObj.images[currentImageIndices[id]];
+            document.getElementById(`badgeObj-${id}`).innerText = `${currentImageIndices[id] + 1}/${lengthMax}`;
+        }
+
+        function handleSearch() { renderProducts(document.getElementById('searchInput').value); }
+
+        function addProduct(event) {
+            event.preventDefault();
+            if(!isAdmin) return; 
+
+            const order = parseInt(document.getElementById('prodOrder').value) || 0;
+            const name = document.getElementById('prodName').value;
+            const price = document.getElementById('prodPrice').value;
+            let imArray =[
+                document.getElementById('prodImage1').value.trim(),
+                document.getElementById('prodImage2').value.trim(),
+                document.getElementById('prodImage3').value.trim(),
+                document.getElementById('prodImage4').value.trim()
+            ].filter(lnk => lnk !== '');
+
+            products.push({ id: new Date().getTime(), order: order, name: name, price: price, images: imArray });
+            
+            saveProductsDB(); 
+            
+            alert('Product added successfully!');
+            document.getElementById('addProductForm').reset();
+            navigate('home');
+        }
+
+        function removeProduct(targetId) {
+            if(!isAdmin) return;
+            if(confirm("Are you sure you want to delete this product?")) {
+                products = products.filter(row => row.id !== targetId);
+                saveProductsDB(); 
+            }
+        }
+
+        // ================= EDIT PRODUCT MODAL LOGIC =================
+        function openEditModal(targetId) {
+            const product = products.find(p => p.id === targetId);
+            if(!product) return;
+
+            document.getElementById('editModalId').value = product.id;
+            document.getElementById('editModalOrder').value = product.order || 0;
+            document.getElementById('editModalName').value = product.name;
+            document.getElementById('editModalPrice').value = product.price;
+
+            // Handle images carefully (up to 4 supported)
+            document.getElementById('editModalImg1').value = product.images[0] || '';
+            document.getElementById('editModalImg2').value = product.images[1] || '';
+            document.getElementById('editModalImg3').value = product.images[2] || '';
+            document.getElementById('editModalImg4').value = product.images[3] || '';
+
+            document.getElementById('editProductModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editProductModal').classList.remove('active');
+        }
+
+        function submitEditProduct(event) {
+            event.preventDefault();
+            if(!isAdmin) return;
+
+            const targetId = parseInt(document.getElementById('editModalId').value);
+            const index = products.findIndex(p => p.id === targetId);
+            
+            if(index !== -1) {
+                products[index].order = parseInt(document.getElementById('editModalOrder').value) || 0;
+                products[index].name = document.getElementById('editModalName').value;
+                products[index].price = document.getElementById('editModalPrice').value;
+
+                let imArray =[
+                    document.getElementById('editModalImg1').value.trim(),
+                    document.getElementById('editModalImg2').value.trim(),
+                    document.getElementById('editModalImg3').value.trim(),
+                    document.getElementById('editModalImg4').value.trim()
+                ].filter(lnk => lnk !== '');
+
+                products[index].images = imArray;
+
+                saveProductsDB();
+                alert("Product Details and Order Updated Successfully!");
+                closeEditModal();
+            }
+        }
+        // ==========================================================
+
+        function renderOwnerPage() {
+            if (!ownerData || Object.keys(ownerData).length === 0) return;
+
+            const oName = ownerData.ownerName || "Naitik Rakesh Kumar Jain (Dhalawat)";
+            const topNum = ownerData.topNumber || "9119240725";
+            const topNumLnk = ownerData.topNumberLink || "tel:9119240725";
+            const addrLink = ownerData.addressLink || "";
+            const encodedName = encodeURIComponent(oName);
+            
+            const screenElement = document.getElementById('ownerCardRender');
+
+            let UIString = `
+                <div class="owner-header"></div>
+                <img src="${ownerData.photo || ''}" onerror="this.src='https://ui-avatars.com/api/?name=${encodedName}&background=2563eb&color=fff&size=200'" class="owner-img">
+                <div class="owner-details">
+                    
+                    <h2>${oName}</h2>
+                    <h4>Founder and Admin</h4>
+
+                    <div class="top-contact-banner">
+                        📞 ${topNum}
+                        <a href="${topNumLnk}" class="btn-action call-btn">Call Now</a>
+                    </div>
+
+                    <div class="info-group"><strong>📧 Email Address:</strong> <br>${ownerData.email || 'N/A'}</div>
+                    
+                    <div class="info-group">
+                        <strong>📌 Store Address </strong>
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 5px;">
+                            <span>${ownerData.address || 'Not set'}</span>
+                            ${addrLink ? `<a href="${addrLink}" target="_blank" class="btn-action go-btn">Go Map 🚀</a>` : ''}
+                        </div>
+                    </div>
+            `;
+            
+            if (ownerData.contacts && ownerData.contacts.length > 0) {
+                ownerData.contacts.forEach(phone => {
+                    UIString += `<div class="info-group"><strong>📲 ${phone.label}: </strong><br> ${phone.number}</div>`;
+                });
+            }
+            UIString += `</div>`;
+            screenElement.innerHTML = UIString;
+        }
+
+        function populateAdminForms() {
+            if (!ownerData || Object.keys(ownerData).length === 0) return;
+
+            document.getElementById('editShopName').value = ownerData.shopName || "Rishab Store";
+            document.getElementById('editOwnerName').value = ownerData.ownerName || "Naitik Rakesh Kumar Jain (Dhalawat)";
+            document.getElementById('editTopNumber').value = ownerData.topNumber || "9119240725";
+            document.getElementById('editTopNumberLink').value = ownerData.topNumberLink || "tel:9119240725";
+
+            document.getElementById('editProfilePic').value = ownerData.photo || "";
+            document.getElementById('editEmail').value = ownerData.email || "";
+            document.getElementById('editAddress').value = ownerData.address || "";
+            document.getElementById('editAddressLink').value = ownerData.addressLink || "";
+
+            let contactHolder = document.getElementById('dynamicContactContainer');
+            contactHolder.innerHTML = ''; 
+
+            if (ownerData.contacts && ownerData.contacts.length > 0) {
+                ownerData.contacts.forEach(contact => addNewContactField(contact.label, contact.number));
+            } else { addNewContactField("","",); }
+        }
+        
+        function addNewContactField(labelStr, numStr) {
+             const divNode = document.createElement('div');
+             divNode.className = 'form-row';
+             divNode.innerHTML = `
+                <input type="text" class="in-label" required placeholder="Display Label Reference" value="${labelStr}">
+                <input type="text" class="in-num" required placeholder="Full Tel Number" value="${numStr}">
+                <button type="button" class="btn-red" style="padding:10px; margin-top:0;" onclick="this.parentElement.remove()">Del.</button>`;
+             document.getElementById('dynamicContactContainer').appendChild(divNode);
+        }
+
+        function saveOwnerProfile(event) {
+            event.preventDefault();
+
+            let arrStruct =[];
+            const labels = document.querySelectorAll('.in-label');
+            const nums = document.querySelectorAll('.in-num');
+
+            for (let i = 0; i < labels.length; i++) {
+                 if(labels[i].value.trim() !== "" && nums[i].value.trim() !== "") {
+                    arrStruct.push({ label: labels[i].value.trim(), number: nums[i].value.trim() });
+                 }
+            }
+            
+            ownerData = {
+                shopName: document.getElementById('editShopName').value,
+                ownerName: document.getElementById('editOwnerName').value,
+                topNumber: document.getElementById('editTopNumber').value,
+                topNumberLink: document.getElementById('editTopNumberLink').value,
+                photo: document.getElementById('editProfilePic').value,
+                email: document.getElementById('editEmail').value,
+                address: document.getElementById('editAddress').value,
+                addressLink: document.getElementById('editAddressLink').value,
+                contacts: arrStruct
+            };
+            
+            saveOwnerDB(); 
+            alert("Shop configuration & profile updated successfully!");
+        }
+
+        function saveProductsDB() { if(isAdmin) { set(ref(db, 'products'), products); } }
+        function saveOwnerDB() { if(isAdmin) { set(ref(db, 'ownerData'), ownerData); } }
+
+    </script>
+</body>
+</html>
